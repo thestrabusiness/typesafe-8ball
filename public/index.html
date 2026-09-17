@@ -234,9 +234,25 @@
   }
 
   .levels dt {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
     font-variant-numeric: tabular-nums;
     color: var(--ink-soft);
     font-size: 0.9rem;
+  }
+
+  .levels .level-pct {
+    min-width: 3ch;
+    text-align: right;
+    color: var(--ink);
+  }
+
+  .levels .level-pct::before {
+    content: "\00B7";
+    margin-right: 0.5rem;
+    color: var(--ink-soft);
+    opacity: 0.7;
   }
 
   .levels dd {
@@ -329,7 +345,13 @@
     data.outlook.levels.forEach((text, i) => {
       const p = data.outlook.probabilities[String(i)] ?? 0;
       const dt = document.createElement("dt");
-      dt.textContent = `${i}  ${pct(p)}`;
+      const num = document.createElement("span");
+      num.className = "level-num";
+      num.textContent = `Level ${i}`;
+      const share = document.createElement("span");
+      share.className = "level-pct";
+      share.textContent = pct(p);
+      dt.append(num, share);
       const dd = document.createElement("dd");
       dd.classList.toggle("picked", i === picked);
       const bar = document.createElement("i");
