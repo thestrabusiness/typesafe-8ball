@@ -4,9 +4,15 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { fileURLToPath } from "node:url";
 import { consult } from "./eightball.js";
 import { QUESTIONS } from "./questions.js";
+import { createRateLimiter } from "./rate-limit.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const MAX_QUESTION_LENGTH = 300;
+/** Per-client budget for /api/ask. Each call costs a model round trip. */
+const ASK_RATE_LIMIT = Number(process.env.ASK_RATE_LIMIT ?? 10);
+const ASK_RATE_WINDOW_SECONDS = Number(process.env.ASK_RATE_WINDOW_SECONDS ?? 60);
+/** Set when a reverse proxy (Railway, nginx) fronts the server and sets X-Forwarded-For. */
+const TRUST_PROXY = process.env.TRUST_PROXY === "1";
 const PAGE = fileURLToPath(new URL("../public/index.html", import.meta.url));
 
 if (!process.env.TYPESAFE_API_KEY) {
@@ -15,6 +21,10 @@ if (!process.env.TYPESAFE_API_KEY) {
 }
 
 const client = new TypeSafeClient();
+const askLimiter = createRateLimiter({
+  limit: ASK_RATE_LIMIT,
+  windowMs: ASK_RATE_WINDOW_SECONDS * 1000,
+});
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
@@ -27,8 +37,30 @@ async function readBody(req: IncomingMessage): Promise<string> {
   return data;
 }
 
+/**
+ * The address we rate limit on. Behind a trusted proxy the socket address is
+ * the proxy, so take the last X-Forwarded-For entry: that is the one the
+ * proxy itself appended, and the only one a client cannot forge.
+ */
+function clientKey(req: IncomingMessage): string {
+  if (TRUST_PROXY) {
+    const forwarded = req.headers["x-forwarded-for"];
+    const raw = Array.isArray(forwarded) ? forwarded.join(",") : forwarded ?? "";
+    const last = raw.split(",").pop()?.trim();
+    if (last) return last;
+  }
+  return req.socket.remoteAddress ?? "unknown";
+}
+
 /** POST /api/ask  { question } -> verdict plus the numbers behind it. */
 async function handleAsk(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const decision = askLimiter.check(clientKey(req));
+  if (!decision.allowed) {
+    const seconds = Math.ceil(decision.retryAfterMs / 1000);
+    res.setHeader("retry-after", String(seconds));
+    return json(res, 429, { error: `The ball needs a rest. Ask again in ${seconds}s.` });
+  }
+
   let question: unknown;
   try {
     ({ question } = JSON.parse(await readBody(req)) as { question?: unknown });
