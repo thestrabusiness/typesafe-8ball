@@ -24,12 +24,19 @@ src/answers.ts     pure data: the 20 classic phrasings, bucketed by meaning
 src/eightball.ts   policy: turn model answers into a verdict (no network in decide())
 src/cli.ts         thin shell: parse args, call consult(), print
 src/server.ts      thin shell: serve the page, POST /api/ask calls consult()
+src/rate-limit.ts  in-memory sliding window, keyed by client IP, guards /api/ask
 public/index.html  the ball: CSS sphere, shake, reveal, and a "how it decided" panel
 test/              unit tests with a fake client, no API key needed
 ```
 
 The web UI calls the same `consult()` as the CLI. The API key stays on the server;
 the browser only ever talks to `/api/ask`.
+
+`/api/ask` is rate limited per client IP (10 requests a minute by default, see
+`.env.example`) since every call is a paid model round trip. Over the limit it
+returns 429 with a `Retry-After` header. Set `TRUST_PROXY=1` when a reverse proxy
+fronts the server so the limit keys on `X-Forwarded-For` instead of the proxy's
+own address.
 
 One request carries two independent questions over the same state:
 
