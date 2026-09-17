@@ -1,0 +1,24 @@
+{
+  "name": "typesafe-8ball",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Magic 8-Ball whose answers come from TypeSafe System One judgments",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "ask": "node --env-file=.env --import tsx src/cli.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "serve": "node --env-file=.env --import tsx src/server.ts"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Magic 8-Ball</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --liquid: #2242c8;
+    --liquid-deep: #101c6a;
+    --ball: #0a0a0c;
+    --die: #f3f1ea;
+    --ink: #f3f1ea;
+    --ink-soft: rgba(243, 241, 234, 0.72);
+    --ball-size: min(86vw, 560px);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: env(safe-area-inset-top, 0px) 20px env(safe-area-inset-bottom, 0px);
+    background: var(--liquid);
+    color: var(--ink);
+    font-family: "Fraunces", Georgia, "Times New Roman", serif;
+    font-variation-settings: "opsz" 24;
+    display: grid;
+    place-items: center;
+  }
+
+  main {
+    width: 100%;
+    max-width: 34rem;
+    display: grid;
+    justify-items: center;
+    gap: 2.25rem;
+    padding-block: 2rem;
+  }
+
+  /* ---------- The ball ---------- */
+
+  .ball {
+    position: relative;
+    width: var(--ball-size);
+    height: var(--ball-size);
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,0.28) 0, rgba(255,255,255,0.06) 18%, transparent 36%),
+      radial-gradient(circle at 50% 50%, #1a1a1e 0, var(--ball) 70%);
+    box-shadow:
+      inset -18px -24px 40px rgba(0,0,0,0.75),
+      0 40px 60px -20px rgba(0, 0, 40, 0.7);
+    display: grid;
+    place-items: center;
+  }
+
+  .ball.shaking { animation: shake 0.9s ease-in-out infinite; }
+
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    20%  { transform: translate(-9px, 4px) rotate(-5deg); }
+    40%  { transform: translate(8px, -5px) rotate(4deg); }
+    60%  { transform: translate(-6px, -3px) rotate(-3deg); }
+    80%  { transform: translate(7px, 5px) rotate(5deg); }
+  }
+
+  .face {
+    position: absolute;
+    width: 56%;
+    height: 56%;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transition: opacity 0.45s ease;
+  }
+
+  .face.eight {
+    background: var(--die);
+    color: var(--ball);
+    font-size: calc(var(--ball-size) * 0.36);
+    font-weight: 600;
+    font-variation-settings: "opsz" 144;
+    line-height: 1;
+    box-shadow: inset 0 -6px 14px rgba(0,0,0,0.18);
+  }
+
+  .face.window {
+    background: radial-gradient(circle at 50% 40%, #1b2d9a 0, var(--liquid-deep) 65%);
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ball.revealed .eight { opacity: 0; }
+  .ball.revealed .window { opacity: 1; }
+
+  /*
+   * An equilateral triangle inscribed in a circle of radius r spans from +r
+   * (apex) to -r/2 (base), so its box is 1.5r tall, r*sqrt(3) wide, and its
+   * centroid sits at the circle's center when the box is shifted up by r/4,
+   * which is 1/6 of the box's own height.
+   */
+  .die {
+    --rest: translateY(-16.7%);
+    width: 86.6%;
+    height: 75%;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+    background: #0c1656;
+    display: grid;
+    place-items: center;
+    padding: 42% 16% 6%;   /* centers the text on the triangle's centroid */
+    transform: var(--rest) translateY(16px);
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .ball.revealed .die { transform: var(--rest); }
+
+  .die p {
+    margin: 0;
+    color: #e6ecff;
+    text-align: center;
+    font-size: clamp(0.8rem, calc(var(--ball-size) * 0.05), 1.45rem);
+    line-height: 1.2;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0.01em;
+    text-shadow: 0 0 10px rgba(120, 150, 255, 0.55);
+  }
+
+  /* ---------- The question ---------- */
+
+  form {
+    width: 100%;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .ask {
+    display: flex;
+    align-items: stretch;
+    gap: 0.6rem;
+    border-bottom: 2px solid rgba(243, 241, 234, 0.4);
+    padding-bottom: 0.4rem;
+    transition: border-color 0.2s;
+  }
+
+  .ask:focus-within { border-color: var(--ink); }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 1.35rem;
+    font-weight: 300;
+    padding: 0.35rem 0;
+  }
+
+  input::placeholder { color: var(--ink-soft); font-style: italic; }
+
+  button {
+    background: var(--die);
+    color: var(--ball);
+    border: none;
+    border-radius: 999px;
+    padding: 0.5rem 1.15rem;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.55; cursor: wait; transform: none; }
+  button:focus-visible, summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+  .status {
+    margin: 0;
+    min-height: 1.4em;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    text-align: center;
+  }
+
+  .status.error { color: #ffd9d3; }
+
+  /* ---------- Why ---------- */
+
+  details {
+    width: 100%;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+
+  details[hidden] { display: none; }
+
+  summary {
+    cursor: pointer;
+    list-style: none;
+    text-align: center;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    color: var(--ink-soft);
+  }
+
+  summary::-webkit-details-marker { display: none; }
+
+  .why {
+    margin-top: 1.25rem;
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .why p { margin: 0; line-height: 1.5; max-width: 60ch; }
+
+  .levels {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 0.9rem;
+    row-gap: 0.55rem;
+    align-items: center;
+    margin: 0;
+  }
+
+  .levels dt {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+  }
+
+  .levels dd {
+    margin: 0;
+    height: 0.75rem;
+    background: rgba(243, 241, 234, 0.14);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .levels dd i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--die);
+    transition: width 0.5s ease;
+  }
+
+  .levels dd.picked i { background: #ffd166; }
+
+  .level-text {
+    grid-column: 1 / -1;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    margin-bottom: 0.25rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ball.shaking { animation: none; }
+    .die, .face, .levels dd i { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="ball" id="ball" aria-live="polite" aria-atomic="true">
+    <div class="face eight" aria-hidden="true">8</div>
+    <div class="face window">
+      <div class="die"><p id="answer"></p></div>
+    </div>
+  </div>
+
+  <form id="form" autocomplete="off">
+    <div class="ask">
+      <input id="question" type="text" maxlength="300" placeholder="Ask a yes-or-no question" aria-label="Your question" required>
+      <button id="shake" type="submit">Shake</button>
+    </div>
+    <p class="status" id="status"></p>
+  </form>
+
+  <details id="why" hidden>
+    <summary>How the ball decided</summary>
+    <div class="why">
+      <p id="gate"></p>
+      <dl class="levels" id="levels"></dl>
+      <p id="commit"></p>
+    </div>
+  </details>
+</main>
+
+<script>
+  const ball = document.getElementById("ball");
+  const form = document.getElementById("form");
+  const input = document.getElementById("question");
+  const shakeButton = document.getElementById("shake");
+  const answer = document.getElementById("answer");
+  const status = document.getElementById("status");
+  const why = document.getElementById("why");
+  const gate = document.getElementById("gate");
+  const levels = document.getElementById("levels");
+  const commit = document.getElementById("commit");
+
+  const MIN_SHAKE_MS = 900;
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const pct = (n) => Math.round(n * 100) + "%";
+
+  function setStatus(text, isError = false) {
+    status.textContent = text;
+    status.classList.toggle("error", isError);
+  }
+
+  function showWhy(data) {
+    const v = data.verdict;
+    gate.textContent = `The ball was ${pct(data.askable)} sure this is a yes-or-no question.`;
+
+    levels.replaceChildren();
+    const picked = v.kind === "answer" ? v.level : -1;
+    data.outlook.levels.forEach((text, i) => {
+      const p = data.outlook.probabilities[String(i)] ?? 0;
+      const dt = document.createElement("dt");
+      dt.textContent = `${i}  ${pct(p)}`;
+      const dd = document.createElement("dd");
+      dd.classList.toggle("picked", i === picked);
+      const bar = document.createElement("i");
+      dd.append(bar);
+      const desc = document.createElement("div");
+      desc.className = "level-text";
+      desc.textContent = text;
+      levels.append(dt, dd, desc);
+      requestAnimationFrame(() => { bar.style.width = pct(p); });
+    });
+
+    const o = data.outlook;
+    if (v.kind === "not_a_question") {
+      commit.textContent = "It did not use the outlook because the question failed the gate.";
+    } else if (v.kind === "hazy") {
+      commit.textContent = `Score ${o.score.toFixed(2)} with confidence ${o.confidence.toFixed(2)}. Too spread out to commit, so it gave a non-answer.`;
+    } else {
+      commit.textContent = `Score ${o.score.toFixed(2)} with confidence ${o.confidence.toFixed(2)}. Rounded to level ${v.level} and picked a phrasing from it.`;
+    }
+    why.hidden = false;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const question = input.value.trim();
+    if (!question) return;
+
+    shakeButton.disabled = true;
+    setStatus("");
+    why.hidden = true;
+    why.open = false;
+    ball.classList.remove("revealed");
+    if (!reduceMotion) ball.classList.add("shaking");
+    const started = Date.now();
+
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Something went wrong.");
+
+      const wait = Math.max(0, MIN_SHAKE_MS - (Date.now() - started));
+      if (!reduceMotion) await new Promise((r) => setTimeout(r, wait));
+
+      answer.textContent = data.verdict.text;
+      ball.classList.remove("shaking");
+      ball.classList.add("revealed");
+      showWhy(data);
+    } catch (err) {
+      ball.classList.remove("shaking");
+      setStatus(err.message, true);
+    } finally {
+      shakeButton.disabled = false;
+    }
+  });
+
+  input.addEventListener("input", () => {
+    if (ball.classList.contains("revealed")) ball.classList.remove("revealed");
+  });
+</script>
+</body>
+</html>
