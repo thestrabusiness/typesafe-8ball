@@ -11,14 +11,15 @@
     "ask": "node --env-file=.env --import tsx src/cli.ts",
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "serve": "node --env-file=.env --import tsx src/server.ts"
+    "serve": "node --env-file=.env --import tsx src/server.ts",
+    "start": "node --import tsx src/server.ts"
   },
   "dependencies": {
-    "@typesafe-ai/sdk": "^0.6.0"
+    "@typesafe-ai/sdk": "^0.6.0",
+    "tsx": "^4.19.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }
 }
